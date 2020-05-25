@@ -1,4 +1,4 @@
-module github.com/xiaojiaoyu100/alipay
+module github.com/xie4ever/alipay
 
 go 1.14
 
