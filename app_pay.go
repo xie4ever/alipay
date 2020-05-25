@@ -68,7 +68,7 @@ func (alipay *Alipay) AppPay(param *AppPayParam, notifyURL string) (string, erro
 	paramStr, err := alipay.MakeParam(
 		param,
 		MethodAlipayTradeAppPay,
-		WithNotifyUrl(notifyURL),
+		WithNotifyURL(notifyURL),
 	)
 	if err != nil {
 		return "", fmt.Errorf("支付宝app支付构造参数失败: %w", err)
