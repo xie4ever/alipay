@@ -296,12 +296,12 @@ func New(appId, publicKeyPath, privateKeyPath string) *Alipay {
 
 	alipay.PublicKey, err = NewPublicKey(publicKeyPath)
 	if err != nil {
-		log.Fatalln("支付宝公钥: ", err)
+		log.Println("支付宝公钥: ", err)
 	}
 
 	alipay.PrivateKey, err = NewPrivateKey(privateKeyPath)
 	if err != nil {
-		log.Fatalln("商户私钥: ", err)
+		log.Println("商户私钥: ", err)
 	}
 
 	return &alipay
