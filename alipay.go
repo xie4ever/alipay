@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-querystring/query"
 )
 
+// AlipayGateway ...
 const (
 	AlipayGateway = "https://openapi.alipay.com/gateway.do"
 )
@@ -36,17 +37,18 @@ var client = &http.Client{
 	Timeout: time.Second * 60,
 }
 
+// CommonParam ...
 type CommonParam struct {
-	AppId        string `url:"app_id,omitempty"`         // 支付宝分配给开发者的应用ID
+	AppID        string `url:"app_id,omitempty"`         // 支付宝分配给开发者的应用ID
 	Method       string `url:"method,omitempty"`         // 接口名称
 	Format       string `url:"format,omitempty"`         // 仅支持JSON
-	ReturnUrl    string `url:"return_url,omitempty"`     // 同步返回地址
+	ReturnURL    string `url:"return_url,omitempty"`     // 同步返回地址
 	Charset      string `url:"charset,omitempty"`        // 请求使用的编码格式，如utf-8,gbk,gb2312等
 	SignType     string `url:"sign_type,omitempty"`      // 商户生成签名字符串所使用的签名算法类型，目前支持RSA2和RSA，推荐使用RSA2
 	Sign         string `url:"sign,omitempty"`           // 商户请求参数的签名串
 	Timestamp    string `url:"timestamp,omitempty"`      // 发送请求的时间，格式"yyyy-MM-dd HH:mm:ss"
 	Version      string `url:"version,omitempty"`        // 调用的接口版本，固定为：1.0
-	NotifyUrl    string `url:"notify_url,omitempty"`     // 支付宝服务器主动通知商户服务器里指定的页面http/https路径。
+	NotifyURL    string `url:"notify_url,omitempty"`     // 支付宝服务器主动通知商户服务器里指定的页面http/https路径。
 	AppAuthToken string `url:"app_auth_token,omitempty"` // 详见应用授权概述
 	BizContent   string `url:"biz_content,omitempty"`    // 请求参数的集合
 }
@@ -58,47 +60,56 @@ var defaultCommonParam = CommonParam{
 	Version:  "1.0",
 }
 
+// Alipay ...
 type Alipay struct {
-	appId string
+	appID string
 	*rsa.PrivateKey
 	*rsa.PublicKey
 	client *http.Client
 }
 
-func (alipay *Alipay) HttpClient() *http.Client {
+// HTTPClient ...
+func (alipay *Alipay) HTTPClient() *http.Client {
 	return alipay.client
 }
 
-func (alipay *Alipay) AppId() string {
-	return alipay.appId
+// AppID ...
+func (alipay *Alipay) AppID() string {
+	return alipay.appID
 }
 
+// Fill ...
 type Fill func(*CommonParam)
 
-func WithNotifyUrl(notifyUrl string) Fill {
+// WithNotifyURL ...
+func WithNotifyURL(notifyURL string) Fill {
 	return func(cp *CommonParam) {
-		cp.NotifyUrl = notifyUrl
+		cp.NotifyURL = notifyURL
 	}
 }
 
-func WithReturnUrl(returnUrl string) Fill {
+// WithReturnURL ...
+func WithReturnURL(returnURL string) Fill {
 	return func(cp *CommonParam) {
-		cp.ReturnUrl = returnUrl
+		cp.ReturnURL = returnURL
 	}
 }
 
+// WithAppAuthToken ...
 func WithAppAuthToken(authToken string) Fill {
 	return func(cp *CommonParam) {
 		cp.AppAuthToken = authToken
 	}
 }
 
+// WithSignType ...
 func WithSignType(signType string) Fill {
 	return func(cp *CommonParam) {
 		cp.SignType = signType
 	}
 }
 
+// MakeParam ...
 func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...Fill) (string, error) {
 	biz, err := json.Marshal(&content)
 	if err != nil {
@@ -106,7 +117,7 @@ func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...
 	}
 
 	requestParam := CommonParam{
-		AppId:      alipay.appId,
+		AppID:      alipay.appID,
 		Method:     method,
 		Format:     defaultCommonParam.Format,
 		Charset:    defaultCommonParam.Charset,
@@ -141,6 +152,7 @@ func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...
 	return values.Encode(), nil
 }
 
+// OnRequest ...
 func (alipay *Alipay) OnRequest(content interface{}, method string, fillList ...Fill) (int, []byte, error) {
 	request, err := http.NewRequest(http.MethodGet, AlipayGateway, nil)
 	if err != nil {
@@ -231,6 +243,7 @@ func (alipay *Alipay) asyncVerifyRequest(values url.Values) error {
 	return Verify(alipay.PublicKey, []byte(normToVerifyStr), signBytes)
 }
 
+// NormValues ...
 func NormValues(v url.Values) string {
 	if v == nil {
 		return ""
@@ -261,9 +274,10 @@ func NormValues(v url.Values) string {
 	return buf.String()
 }
 
-func New(appId, publicKeyPath, privateKeyPath string) (*Alipay, error) {
+// New ...
+func New(appID, publicKeyPath, privateKeyPath string) (*Alipay, error) {
 	alipay := Alipay{
-		appId:  appId,
+		appID:  appID,
 		client: client,
 	}
 
@@ -282,7 +296,7 @@ func New(appId, publicKeyPath, privateKeyPath string) (*Alipay, error) {
 	return &alipay, nil
 }
 
-// public key参照ParsePKIXPublicKey
+// NewPublicKey publicKey参照ParsePKIXPublicKey
 func NewPublicKey(path string) (pub *rsa.PublicKey, err error) {
 	pubBytes, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -300,7 +314,7 @@ func NewPublicKey(path string) (pub *rsa.PublicKey, err error) {
 	return publicKey, nil
 }
 
-// private key格式参照ParsePKCS1PrivateKey
+// NewPrivateKey privateKey格式参照ParsePKCS1PrivateKey
 func NewPrivateKey(path string) (priKey *rsa.PrivateKey, err error) {
 	privateBytes, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -314,6 +328,7 @@ func NewPrivateKey(path string) (priKey *rsa.PrivateKey, err error) {
 	return privateKey, nil
 }
 
+// Verify ...
 func Verify(publicKey *rsa.PublicKey, data []byte, sig []byte) error {
 	h := sha256.New()
 	h.Write(data)
@@ -321,6 +336,7 @@ func Verify(publicKey *rsa.PublicKey, data []byte, sig []byte) error {
 	return rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, digest, sig)
 }
 
+// RSA2 ...
 func RSA2(privateKey *rsa.PrivateKey, in string) (string, error) {
 	hash := sha256.New()
 	_, err := io.WriteString(hash, in)

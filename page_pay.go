@@ -1,3 +1,4 @@
+// Package alipay https://docs.open.alipay.com/270/alipay.trade.page.pay
 package alipay
 
 import (
@@ -6,14 +7,14 @@ import (
 	"net/url"
 )
 
-// https://docs.open.alipay.com/270/alipay.trade.page.pay
-
+// PagePayParamExtendParams ...
 type PagePayParamExtendParams struct {
-	SysServiceProviderId string `json:"sys_service_provider_id,omitempty"` // 系统商编号
+	SysServiceProviderID string `json:"sys_service_provider_id,omitempty"` // 系统商编号
 	HbFqNum              string `json:"hb_fq_num,omitempty"`               // 花呗分期数（目前仅支持3、6、12）注：使用该参数需要仔细阅读“花呗分期接入文档”
 	HbFqSellerPercent    string `json:"hb_fq_seller_percent,omitempty"`    // 卖家承担收费比例，商家承担手续费传入100，用户承担手续费传入0，仅支持传入100、0两种，其他比例暂不支持注：使用该参数需要仔细阅读“花呗分期接入文档”
 }
 
+// PagePayParam ...
 type PagePayParam struct {
 	OutTradeNo         string `json:"out_trade_no"`                   // 商户订单号，64个字符以内、可包含字母、数字、下划线；需保证在商户端不重复
 	ProductCode        string `json:"product_code"`                   // 销售产品码，与支付宝签约的产品码名称。 注：目前仅支持FAST_INSTANT_TRADE_PAY
@@ -32,7 +33,8 @@ type PagePayParam struct {
 	QrCodeWidth        string `json:"qrcode_width,omitempty"`         // 商户自定义二维码宽度
 }
 
-func (alipay *Alipay) PagePay(param *PagePayParam, notifyUrl string, returnUrl string) (string, error) {
+// PagePay ...
+func (alipay *Alipay) PagePay(param *PagePayParam, notifyURL string, returnURL string) (string, error) {
 	param.ProductCode = "FAST_INSTANT_TRADE_PAY"
 
 	if len(param.OutTradeNo) == 0 {
@@ -54,8 +56,8 @@ func (alipay *Alipay) PagePay(param *PagePayParam, notifyUrl string, returnUrl s
 	paramStr, err := alipay.MakeParam(
 		param,
 		MethodAlipayTradePagePay,
-		WithNotifyUrl(notifyUrl),
-		WithReturnUrl(returnUrl),
+		WithNotifyURL(notifyURL),
+		WithReturnURL(returnURL),
 	)
 	if err != nil {
 		return "", fmt.Errorf("支付宝电脑网站支付构造参数失败: %w", err)
