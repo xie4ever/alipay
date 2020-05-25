@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -102,8 +102,7 @@ func WithSignType(signType string) Fill {
 func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...Fill) (string, error) {
 	biz, err := json.Marshal(&content)
 	if err != nil {
-		log.Println("支付宝请求业务参数序列化失败: ", err)
-		return "", err
+		return "", fmt.Errorf("支付宝请求业务参数序列化失败: %w", err)
 	}
 
 	requestParam := CommonParam{
@@ -123,27 +122,20 @@ func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...
 
 	requestSignValues, err := query.Values(&requestParam)
 	if err != nil {
-		log.Println("支付宝请求参数序列化失败: ", err)
-		return "", err
+		return "", fmt.Errorf("支付宝请求参数序列化失败: %w", err)
 	}
 
 	requestSignedStr := NormValues(requestSignValues)
 
 	requestSign, err := RSA2(alipay.PrivateKey, requestSignedStr)
 	if err != nil {
-		log.Println("支付宝商户私钥签名不成功: ", err)
-		return "", err
+		return "", fmt.Errorf("支付宝商户私钥签名不成功: %w", err)
 	}
 
 	requestParam.Sign = requestSign
-
-	log.Println("支付宝请求待签名的字符串: ", requestSignedStr)
-	log.Println("支付宝请求签名结果: ", requestSign)
-
 	values, err := query.Values(&requestParam)
 	if err != nil {
-		log.Println("支付宝请求结构体不能序列化: ", err)
-		return "", err
+		return "", fmt.Errorf("支付宝请求结构体不能序列化: %w", err)
 	}
 
 	return values.Encode(), nil
@@ -152,40 +144,30 @@ func (alipay *Alipay) MakeParam(content interface{}, method string, fillList ...
 func (alipay *Alipay) OnRequest(content interface{}, method string, fillList ...Fill) (int, []byte, error) {
 	request, err := http.NewRequest(http.MethodGet, AlipayGateway, nil)
 	if err != nil {
-		log.Println("支付宝生成请求失败: ", err)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("支付宝生成请求失败: %w", err)
 	}
 
 	param, err := alipay.MakeParam(content, method, fillList...)
 	if err != nil {
-		log.Println("支付宝构造请求参数失败: ", err)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("支付宝构造请求参数失败: %w", err)
 	}
 
 	request.URL.RawQuery = param
-
-	log.Println(request.URL.String())
-
 	response, err := alipay.client.Do(request)
 	if err != nil {
-		log.Println("支付宝发起请求失败: ", err)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("支付宝发起请求失败: %w", err)
 	}
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Println("支付宝请求结果读取body失败: ", err)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("支付宝请求结果读取body失败: %w", err)
 	}
-
-	log.Println(request.URL.String(), string(body))
 
 	obj := make(map[string]*json.RawMessage)
 
 	if err := json.Unmarshal(body, &obj); err != nil {
-		log.Println("支付宝请求结果反序列化失败: ", err)
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("支付宝请求结果反序列化失败: %w", err)
 	}
 
 	var (
@@ -208,19 +190,16 @@ func (alipay *Alipay) OnRequest(content interface{}, method string, fillList ...
 		var base64SignStr string
 
 		if err := json.Unmarshal(sig, &base64SignStr); err != nil {
-			log.Println("反序列化签名失败: ", err)
-			return 0, nil, err
+			return 0, nil, fmt.Errorf("反序列化签名失败: %w", err)
 		}
 
 		signStr, err := base64.StdEncoding.DecodeString(base64SignStr)
 		if err != nil {
-			log.Println("base64解码签名失败: ", err)
-			return 0, nil, err
+			return 0, nil, fmt.Errorf("base64解码签名失败: %w", err)
 		}
 
 		if err := Verify(alipay.PublicKey, data, signStr); err != nil {
-			log.Println("支付宝同步请求签名验证不通过: ", err)
-			return 0, nil, err
+			return 0, nil, fmt.Errorf("支付宝同步请求签名验证不通过: %w", err)
 		}
 	}
 
@@ -249,10 +228,6 @@ func (alipay *Alipay) asyncVerifyRequest(values url.Values) error {
 
 	normToVerifyStr := NormValues(toVerifyValues)
 	signBytes, _ := base64.StdEncoding.DecodeString(base64Sign)
-
-	log.Println("异步通知待验签字符串: ", normToVerifyStr)
-	log.Println("异步通知签名: ", base64Sign)
-
 	return Verify(alipay.PublicKey, []byte(normToVerifyStr), signBytes)
 }
 
@@ -286,7 +261,7 @@ func NormValues(v url.Values) string {
 	return buf.String()
 }
 
-func New(appId, publicKeyPath, privateKeyPath string) *Alipay {
+func New(appId, publicKeyPath, privateKeyPath string) (*Alipay, error) {
 	alipay := Alipay{
 		appId:  appId,
 		client: client,
@@ -296,15 +271,15 @@ func New(appId, publicKeyPath, privateKeyPath string) *Alipay {
 
 	alipay.PublicKey, err = NewPublicKey(publicKeyPath)
 	if err != nil {
-		log.Println("支付宝公钥: ", err)
+		return nil, fmt.Errorf("支付宝公钥构建失败: %w", err)
 	}
 
 	alipay.PrivateKey, err = NewPrivateKey(privateKeyPath)
 	if err != nil {
-		log.Println("商户私钥: ", err)
+		return nil, fmt.Errorf("商户私钥构建失败: %w", err)
 	}
 
-	return &alipay
+	return &alipay, nil
 }
 
 // public key参照ParsePKIXPublicKey

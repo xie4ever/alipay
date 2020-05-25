@@ -2,7 +2,7 @@ package alipay
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"net/url"
 )
 
@@ -64,13 +64,11 @@ func (alipay *Alipay) WapPay(param *WapPayParam, notifyUrl string, returnUrl str
 		WithReturnUrl(returnUrl),
 	)
 	if err != nil {
-		log.Println("支付宝wap支付构造参数失败: ", err)
-		return "", err
+		return "", fmt.Errorf("支付宝wap支付构造参数失败: %w", err)
 	}
 	url, err := url.Parse(AlipayGateway)
 	if err != nil {
-		log.Println("解析支付宝网关失败: ", err)
-		return "", err
+		return "", fmt.Errorf("解析支付宝网关失败: %w", err)
 	}
 	url.RawQuery = paramStr
 	return url.String(), nil

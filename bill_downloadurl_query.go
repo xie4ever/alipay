@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"log"
 	"strings"
 )
 
@@ -136,9 +135,6 @@ func (alipay *Alipay) BillTradeList(bill []byte) ([]*BillTradeEntry, error) {
 			contentBytesInUtd8, _ := GbkToUtf8(buf.Bytes())
 
 			content := string(contentBytesInUtd8)
-
-			log.Println(content)
-
 			lines := strings.Split(content, "\n")
 			var (
 				validContent string
