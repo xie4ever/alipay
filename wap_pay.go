@@ -42,27 +42,19 @@ func (alipay *Alipay) WapPay(param *WapPayParam, notifyUrl string, returnUrl str
 	param.ProductCode = "QUICK_WAP_WAY"
 
 	if len(param.OutTradeNo) == 0 {
-		text := "商户订单号不能为空"
-		log.Println(text)
-		return "", errors.New(text)
+		return "", errors.New("商户订单号不能为空")
 	}
 
 	if len(param.TotalAmount) == 0 {
-		text := "订单金额不能为空"
-		log.Println(text)
-		return "", errors.New(text)
+		return "", errors.New("订单金额不能为空")
 	}
 
 	if len(param.Subject) == 0 {
-		text := "订单标题不能为空"
-		log.Println(text)
-		return "", errors.New(text)
+		return "", errors.New("订单标题不能为空")
 	}
 
 	if len(param.TimeoutExpress) == 0 {
-		text := "订单允许的最晚付款时间不能为空"
-		log.Println(text)
-		return "", errors.New(text)
+		return "", errors.New("订单允许的最晚付款时间不能为空")
 	}
 
 	paramStr, err := alipay.MakeParam(
